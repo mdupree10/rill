@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import random
 import os
 import sys
 from setuptools import setup, find_packages
