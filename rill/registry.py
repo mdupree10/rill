@@ -6,7 +6,7 @@ to query all registered runtimes.
 """
 
 from bottle import route, request, response, run
-from urlparse import urlparse
+from urllib.parse import urlparse
 from datetime import datetime
 import json
 
