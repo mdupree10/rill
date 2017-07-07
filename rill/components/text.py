@@ -2,51 +2,51 @@ from rill import *
 
 
 @component
-@outport("OUT", type=str)
-@inport("IN", type=str)
-@inport("PRE", type=str, required=True)
-def Prefix(IN, PRE, OUT):
+@outport("out", type=str)
+@inport("entry", type=str)
+@inport("pre", type=str, required=True)
+def Prefix(entry, pre, out):
     """
     Prefix each packet IN with the given PRE and copy it to OUT
     """
-    prefix = PRE.receive_once()
+    prefix = pre.receive_once()
 
-    for p in IN:
+    for p in entry:
         text = prefix + p.get_contents()
         p.drop()
-        OUT.send(text)
+        out.send(text)
 
 
 @component
-@outport("OUT", type=str)
-@inport("IN", type=str)
-@inport("PRE", type=str, required=True)
-@inport("POST", type=str, required=True)
-def Affix(IN, PRE, POST, OUT):
+@outport("out", type=str)
+@inport("entry", type=str)
+@inport("pre", type=str, required=True)
+@inport("post", type=str, required=True)
+def Affix(entry, pre, post, out):
     """
     For each packet IN add the Strings PRE as a prefix and POST as a suffix,
     and copy to OUT
     """
-    spre = PRE.receive_once()
-    spost = POST.receive_once()
+    spre = pre.receive_once()
+    spost = post.receive_once()
 
-    for s in IN.iter_contents():
+    for s in entry.iter_contents():
         sout = spre + s + spost
-        OUT.send(sout)
+        out.send(sout)
 
 
 @component
-@outport("OUT", type=str)
-@inport("IN", type=str)
-def DedupeSuccessive(IN, OUT):
+@outport("out", type=str)
+@inport("entry", type=str)
+def DedupeSuccessive(entry, out):
     """
     Take text IN and only send OUT where it differs from the previous
     text
     """
     previous = ""
-    for s in IN.iter_contents():
+    for s in entry.iter_contents():
         if not previous == s:
-            OUT.send(s)
+            out.send(s)
         previous = s
 
 
@@ -54,11 +54,11 @@ def DedupeSuccessive(IN, OUT):
 # @component
 # @ComponentDescription(
 #     "Pass through a CSV stream, also output LIMITS of field lengths as CSV")
-# @outport("OUT")
-# @outport("LIMITS")
-# @inport("IN")
-# @inport("SEP")
-# def FieldLimits(IN, OUT):
+# @outport("out")
+# @outport("limits")
+# @inport("entry")
+# @inport("sep")
+# def FieldLimits(entry, out):
 #     # Default separator
 #     sep = ","
 #
@@ -69,11 +69,12 @@ def DedupeSuccessive(IN, OUT):
 #         sep = psep.get_contents()
 #         self.drop(psep)
 #
-#     # Pass through IN to OUT, keeping greatest field lengths
+#     # IN === entry
+#     Pass through entry to out, keeping greatest field lengths
 #     int[]
 #     nlimits = None
 #     p
-#     for p in IN:
+#     for p in entry:
 #         o = p.get_contents()
 #
 #         # Get fields for self record
@@ -100,25 +101,25 @@ def DedupeSuccessive(IN, OUT):
 
 
 @component
-@outport("OUT", type=str)
-@inport("IN", type=str)
-def LineToWords(IN, OUT):
+@outport("out", type=str)
+@inport("entry", type=str)
+def LineToWords(entry, out):
     """Take space-separated words in a record IN and deliver individual words
     OUT"""
-    for line in IN.iter_contents():
+    for line in entry.iter_contents():
         words = line.split()
         for word in words:
-            OUT.send(word)
+            out.send(word)
 
 
 @component
-@outport("OUT", type=str)
-@inport("IN", type=str)
-def LowerCase(IN, OUT):
-    """Convert text IN to lower case and send OUT"""
-    for s in IN.iter_contents():
+@outport("out", type=str)
+@inport("entry", type=str)
+def LowerCase(entry, out):
+    """Convert text entry to lower case and send OUT"""
+    for s in entry.iter_contents():
         lower = s.lower()
-        OUT.send(lower)
+        out.send(lower)
 
 
 # @component
@@ -251,56 +252,56 @@ def LowerCase(IN, OUT):
 
 
 @component
-@outport("OUT", type=str)
-@inport("IN", description="Strings to have replacement applied", type=str)
-@inport("REGEX", description="regular expression",
+@outport("out", type=str)
+@inport("entry", description="Strings to have replacement applied", type=str)
+@inport("regex", description="regular expression",
         type=str, required=True)
-@inport("REPL", description="Replacement String", type=str, required=True)
-def ReplaceRegExp(IN, REGEX, REPL, OUT):
+@inport("repl", description="Replacement String", type=str, required=True)
+def ReplaceRegExp(entry, regex, repl, out):
     """
     Replace all occurrences of FIND in each packet IN with the given
     REPL and copy to OUT
     """
-    find = re.compile(REGEX.receive_once())
-    repl = REPL.receive_once()
+    find = regex.compile(regex.receive_once())
+    repl = repl.receive_once()
 
-    for s in IN.iter_contents():
+    for s in entry.iter_contents():
         out = find.sub(s, repl)
-        OUT.send(out)
+        out.send(out)
 
 
 @component
-@outport("OUT")
-@inport("IN", description="Strings to be modified", type=str)
-@inport("FIND", description="Search target", type=str, required=True)
-@inport("REPL", description="Replacement text", type=str, required=True)
-def ReplaceString(IN, FIND, REPL, OUT):
+@outport("out")
+@inport("entry", description="Strings to be modified", type=str)
+@inport("find", description="Search target", type=str, required=True)
+@inport("repl", description="Replacement text", type=str, required=True)
+def ReplaceString(entry, find, repl, out):
     """
     Replace all occurrences of text matching FIND (case-sensitive) in each
     packet IN with the given REPL and send to OUT
     """
-    find = FIND.receive_once()
-    repl = REPL.receive()
+    find = find.receive_once()
+    repl = repl.receive()
 
-    for s in IN.iter_contents():
+    for s in entry.iter_contents():
         out = s.replace(find, repl)
-        OUT.send(out)
+        out.send(out)
 
 
 @component
-@outport("OUT", type=str)
-@inport("IN", type=str)
-@inport("MEASURE", type=int)
-def WordsToLine(IN, MEASURE, OUT):
+@outport("out", type=str)
+@inport("entry", type=str)
+@inport("measure", type=int)
+def WordsToLine(entry, measure, out):
     """
     Take words IN and deliver OUT a line no longer than MEASURE characters
     """
-    measure = MEASURE.receive_once()
+    measure = measure.receive_once()
 
     line = ""
-    for word in IN.iter_contents():
+    for word in entry.iter_contents():
         if measure and (len(line) + 1 + len(word)) > measure:
-            OUT.send(line)
+            out.send(line)
             # restart line
             line = word
         else:
@@ -309,36 +310,36 @@ def WordsToLine(IN, MEASURE, OUT):
             line += word
     if line:
         # remainder
-        OUT.send(line)
+        out.send(line)
 
 
 @component
-@outport("OUT", type=str)
-@inport("IN", type=str)
-def ConcatStr(IN, OUT):
+@outport("out", type=str)
+@inport("entry", type=str)
+def ConcatStr(entry, out):
     """
     Concatenate all packets from IN into one string sent to OUT
     """
     result = ""
-    for s in IN.iter_contents():
+    for s in entry.iter_contents():
         result += s
-    OUT.send(result)
+    out.send(result)
 
 
 @component
-@outport("ACC", type=str)
-@outport("REJ", type=str)
-@inport("IN", type=str)
-@inport("TEST", type=str)
-def StartsWith(IN, TEST, ACC, REJ):
+@outport("acc", type=str)
+@outport("rej", type=str)
+@inport("in", type=str)
+@inport("test", type=str)
+def StartsWith(entry, test, acc, rej):
     """
     Route packets starting with TEST to ACC, others to REJ
     """
-    test_str = TEST.receive_once()
+    test_str = test.receive_once()
 
-    for p in IN.iter_packets():
+    for p in entry.iter_packets():
         s = p.get_contents()
         if s.startswith(test_str):
-            ACC.send(p)
+            acc.send(p)
         else:
-            REJ.send(p)
+            rej.send(p)

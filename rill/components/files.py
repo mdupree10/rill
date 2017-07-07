@@ -3,26 +3,26 @@ from rill.fn import synced
 
 
 @component
-@inport("IN", description="Packets to be written", type=str)
-@inport("FILEPATH", description="File name", type=str)
-@outport("OUT", required=False, description="Output port, if connected",
+@inport("entry", description="Packets to be written", type=str)
+@inport("filepath", description="File name", type=str)
+@outport("out", required=False, description="Output port, if connected",
          type=str)
 @must_run
-def WriteLines(IN, FILEPATH, OUT):
+def WriteLines(entry, filepath, out):
     """
-    Write each packet from IN to a line FILEPATH, and also pass it through to
+    Write each packet from IN to a line filepath, and also pass it through to
     OUT.
     """
     # FIXME: consider adding a buffer to reduce IO
 
-    filename = FILEPATH.receive_once()
+    filename = filepath.receive_once()
     if filename is None:
         return
 
     logger.info("Writing file {}".format(filename))
     try:
         with open(filename, 'w') as f:
-            for p in IN:
+            for p in entry:
                 # long_wait_start(_timeout)
 
                 try:
@@ -32,7 +32,7 @@ def WriteLines(IN, FILEPATH, OUT):
                         filename, str(e)))
 
                 # long_wait_end()
-                OUT.send(p)
+                out.send(p)
 
     except IOError as e:
         logger.error("Failed writing file {}: {}".format(
@@ -40,24 +40,24 @@ def WriteLines(IN, FILEPATH, OUT):
 
 
 @component
-@inport("IN", description="Packets to be written", type=str)
-@inport("FILEPATH", description="File name", type=str)
-@outport("OUT", required=False, description="Output port, if connected",
+@inport("entry", description="Packets to be written", type=str)
+@inport("filepatch", description="File name", type=str)
+@outport("out", required=False, description="Output port, if connected",
          type=str)
 @must_run
-def Write(IN, FILEPATH, OUT):
+def Write(entry, filepath, out):
     """
-    Write each packet from IN to FILEPATH.
+    Write each packet from entry to filepath.
 
     Each packet is written to its own file (open/write/close), thus to avoid
-    data being overwritten IN and FILEPATH should be streams of the same length
+    data being overwritten IN and filepath should be streams of the same length
     """
-    # p = FILEPATH.receive()
+    # p = filepath.receive()
     # if p is None:
     #     return
     # filename = p.get_contents()
     #
-    # p = IN.receive()
+    # p = entry.receive()
     # if p is None:
     #     return
     #
@@ -68,9 +68,9 @@ def Write(IN, FILEPATH, OUT):
     # except IOError as e:
     #     logger.error("Failed writing file {}: {}".format(
     #         filename, str(e)))
-    # OUT.send(p)
+    # out.send(p)
 
-    for pfile, ptext in synced(FILEPATH, IN):
+    for pfile, ptext in synced(filepath, entry):
         filename = pfile.get_contents()
         pfile.drop()
         logger.info("Writing file {}".format(filename))
@@ -80,29 +80,29 @@ def Write(IN, FILEPATH, OUT):
         except IOError as e:
             logger.error("Failed writing file {}: {}".format(
                 filename, str(e)))
-        OUT.send(ptext)
+        out.send(ptext)
 
 
 @component
-@outport("OUT", description="Generated packets", type=str)
-@inport("FILEPATH", description="File name", type=str)
-def ReadLines(FILEPATH, OUT):
+@outport("out", description="Generated packets", type=str)
+@inport("filepath", description="File name", type=str)
+def ReadLines(filepath, out):
     """
     Creates a packets for each line in a file.
     """
-    # filename = FILEPATH.receive_once()
+    # filename = filepath.receive_once()
     # if filename is None:
     #     return
     #
-    for filename in FILEPATH.iter_contents():
+    for filename in filepath.iter_contents():
 
         logger.info("Reading file {}".format(filename))
         try:
             with open(filename, 'r') as f:
                 for line in f:
-                    if OUT.is_closed():
+                    if out.is_closed():
                         break
-                    OUT.send(line.rstrip('\n'))
+                    out.send(line.rstrip('\n'))
         except IOError as e:
             logger.error("Failed reading file {}: {}".format(
                 filename, str(e)))

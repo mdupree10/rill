@@ -2,28 +2,28 @@ from rill import *
 
 
 @component
-@inport('IN')
-@outport('OUT')
-def First(IN, OUT):
+@inport('entry')
+@outport('out')
+def First(entry, out):
     """
     Pass along only the first packet in the stream.
     """
-    value = IN.receive_once()
-    OUT.send(value)
+    value = entry.receive_once()
+    out.send(value)
 
 
 @component
-@outport("ACC")
-@outport("REJ", required=False)
-@inport("IN")
-@inport("NUMBER", required=True)
-def SelNthItem(IN, NUMBER, ACC, REJ):
+@outport("acc")
+@outport("rej", required=False)
+@inport("entry")
+@inport("number", required=True)
+def SelNthItem(entry, number, acc, rej):
     """Select from IN one packet by NUMBER (0 means first), sending via ACC,
     rejected packets via REJ"""
-    selector = NUMBER.receive_once()
+    selector = number.receive_once()
 
-    for i, p in enumerate(IN):
+    for i, p in enumerate(entry):
         if i == selector:
-            ACC.send(p)
+            acc.send(p)
         else:
-            REJ.send(p)
+            rej.send(p)

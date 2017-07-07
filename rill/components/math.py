@@ -3,9 +3,9 @@ from rill.fn import synced
 
 
 @component
-@inport('IN1')
-@inport('IN2')
-@outport('OUT')
-def Add(IN1, IN2, OUT):
-    for x, y in synced(IN1, IN2).iter_contents():
-        OUT.send(x + y)
+@inport('entry1')
+@inport('entry2')
+@outport('out')
+def Add(entry1, entry2, out):
+    for x, y in synced(entry1, entry2).iter_contents():
+        out.send(x + y)

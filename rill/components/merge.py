@@ -3,15 +3,15 @@ from rill.fn import cycle, synced, eager_merged
 
 
 @component
-@inport("IN", array=True, description="Incoming packets")
-@outport("OUT", description="Merged output")
-def SubstreamSensitiveMerge(IN, OUT):
+@inport("entry", array=True, description="Incoming packets")
+@outport("out", description="Merged output")
+def SubstreamSensitiveMerge(entry, out):
     """
     Merge multiple input streams, first-in, first-out, but sensitive to
     substreams
     """
     inport = None
-    inports = eager_merged(IN)
+    inports = eager_merged(entry)
     substream_level = 0
     while True:
         if substream_level != 0:
@@ -28,13 +28,13 @@ def SubstreamSensitiveMerge(IN, OUT):
             substream_level += 1
         elif p.get_type() == Packet.Type.CLOSE:
             substream_level -= 1
-        OUT.send(p)
+        out.send(p)
 
 
 @component
-@outport("IN", array=True, description="Incoming packets")
-@inport("OUT", description="Merged output")
-def RoundRobinMerge(IN, OUT):
+@outport("entry", array=True, description="Incoming packets")
+@inport("out", description="Merged output")
+def RoundRobinMerge(entry, out):
     """"Merge multiple input streams, following Round Robin system
 
     Merges an IP from input array element 0, then one from 1, then one from 2,
@@ -43,22 +43,22 @@ def RoundRobinMerge(IN, OUT):
 
     The assumption is that all input streams have the same number of IPs
     """
-    for inport in cycle(IN.ports()):
+    for inport in cycle(entry.ports()):
         p = inport.receive()
         if p is None:
-            IN.close()
+            entry.close()
             return
-        OUT.send(p)
+        out.send(p)
 
 
 @component
-@inport("IN", array=True)
-@outport("OUT")
-def Concatenate(IN, OUT):
+@inport("entry", array=True)
+@outport("out")
+def Concatenate(entry, out):
     """Concatenate two or more streams of packets"""
-    for inport in IN.ports():
+    for inport in entry.ports():
         for packet in inport:
-            OUT.send(packet)
+            out.send(packet)
 
 
 @component
